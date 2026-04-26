@@ -58,8 +58,11 @@
 
 // ---------- Contact form submit ----------
 (() => {
-  // Paste your webhook URL here (e.g. n8n, Zapier, Make, your own endpoint).
-  const WEBHOOK_URL = 'https://main-n8n-server.onrender.com/webhook/1b71cfb0-bce9-4f29-bc05-19dac99d01ee';
+  // Webhook endpoints — form data is POSTed to each in parallel.
+  const WEBHOOK_URLS = [
+    'https://main-n8n-server.onrender.com/webhook/1b71cfb0-bce9-4f29-bc05-19dac99d01ee',
+    'https://main-n8n-server.onrender.com/webhook/lead-capture',
+  ];
 
   const form = document.getElementById('contact-form');
   const thanks = document.getElementById('form-thanks');
@@ -103,14 +106,14 @@
     }
 
     try {
-      // Fire-and-forget. We don't need to read the response, so use no-cors
-      // mode — n8n still receives the POST regardless of its CORS headers.
-      // The response will be opaque; only true network failures throw here.
-      await fetch(WEBHOOK_URL, {
-        method: 'POST',
-        mode: 'no-cors',
-        body,
-      });
+      // Fire-and-forget to every webhook in parallel. We don't need to read
+      // the responses, so use no-cors — n8n still receives each POST regardless
+      // of its CORS headers. Only true network failures throw here.
+      await Promise.all(
+        WEBHOOK_URLS.map((url) =>
+          fetch(url, { method: 'POST', mode: 'no-cors', body })
+        )
+      );
 
       if (submitBtn) submitBtn.textContent = 'Sent!';
       // Brief beat so the user sees the success label, then swap to thanks.
